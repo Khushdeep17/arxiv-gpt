@@ -2,47 +2,45 @@
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
-from datetime import datetime
 import os
+from datetime import datetime
 
-def generate_pdf(papers, query, output_dir="data"):
+def generate_pdf(papers, query):
     """
-    Generate a PDF report of fetched papers and their summaries.
+    Generate a PDF report from the list of papers.
     """
     try:
-        os.makedirs(output_dir, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = os.path.join(output_dir, f"arxiv_gpt_{query.replace(' ', '_')}_{timestamp}.pdf")
-        
-        # Create PDF document
-        doc = SimpleDocTemplate(filename, pagesize=letter)
+        output_dir = "data"
+        os.makedirs(output_dir, exist_ok=True)
+        pdf_filename = os.path.join(output_dir, f"arxiv_gpt_{query.replace(' ', '_')}_{timestamp}.pdf")
+
+        doc = SimpleDocTemplate(pdf_filename, pagesize=letter)
         styles = getSampleStyleSheet()
         story = []
 
-        # Add title
-        story.append(Paragraph(f"arXiv-GPT Research Report: {query}", styles['Title']))
+        # Title
+        story.append(Paragraph(f"Research Papers on {query}", styles['Title']))
         story.append(Spacer(1, 12))
 
-        # Add papers
         for i, paper in enumerate(papers, 1):
-            story.append(Paragraph(f"Paper {i}", styles['Heading2']))
-            story.append(Paragraph(f"<b>Title:</b> {paper['title']}", styles['Normal']))
-            story.append(Paragraph(f"<b>Authors:</b> {', '.join(paper['authors'])}", styles['Normal']))
-            story.append(Paragraph(f"<b>Published:</b> {paper['published'].strftime('%Y-%m-%d')}", styles['Normal']))
-            story.append(Paragraph(f"<b>URL:</b> <link href='{paper['url']}' color='blue'>{paper['url']}</link>", styles['Normal']))
-            story.append(Paragraph(f"<b>Summary:</b>", styles['Normal']))
-            # Split summary into bullet points
-            summary_lines = paper.get('summary', 'Summary unavailable').split('\n')
-            for line in summary_lines:
-                if line.strip():
-                    story.append(Paragraph(f"• {line.strip()}", styles['Normal']))
-            story.append(Spacer(1, 12))
-            story.append(Paragraph("-" * 50, styles['Normal']))
+            # Paper details
+            story.append(Paragraph(f"Paper {i}: {paper['title']}", styles['Heading2']))
+            story.append(Paragraph(f"Authors: {', '.join(paper['authors'])}", styles['Normal']))
+            story.append(Paragraph(f"Published: {paper['published'].strftime('%Y-%m-%d')}", styles['Normal']))
+            story.append(Paragraph(f"URL: {paper['url']}", styles['Normal']))
+            story.append(Paragraph(f"Source: {'Semantic Scholar' if 'semanticscholar' in paper['url'] else 'arXiv'}", styles['Normal']))
+            
+            # Summary (use raw abstract if summary is an error)
+            summary = paper['summary']
+            if summary.startswith("Error summarizing paper"):
+                summary = paper.get('raw_summary', 'No summary available.')
+            story.append(Paragraph(f"Summary:", styles['Heading3']))
+            story.append(Paragraph(summary, styles['Normal']))
             story.append(Spacer(1, 12))
 
-        # Build PDF
         doc.build(story)
-        return filename
+        return pdf_filename
     except Exception as e:
-        print(f"Error generating PDF: {e}")
+        print(f"PDF generation error: {e}")
         return None

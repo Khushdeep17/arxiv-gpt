@@ -34,6 +34,7 @@ def fetch_arxiv(query, max_results=5):
             papers.append({
                 'title': result.title,
                 'summary': result.summary,
+                'raw_summary': result.summary,  # Store raw abstract
                 'url': result.pdf_url,
                 'authors': [author.name for author in result.authors],
                 'published': result.published
@@ -66,9 +67,11 @@ def fetch_semantic_scholar(query, max_results=5):
         
         papers = []
         for paper in data[:max_results]:
+            abstract = paper.get('abstract', 'No abstract available.')
             papers.append({
                 'title': paper.get('title', 'Unknown'),
-                'summary': paper.get('abstract', 'No abstract available.'),
+                'summary': abstract,
+                'raw_summary': abstract,  # Store raw abstract
                 'url': paper.get('url', f"https://www.semanticscholar.org/paper/{paper.get('paperId', 'unknown')}"),
                 'authors': [author.get('name', 'Unknown') for author in paper.get('authors', [])] or ['Unknown'],
                 'published': datetime.strptime(paper.get('publicationDate', datetime.now().strftime('%Y-%m-%d')), '%Y-%m-%d') if paper.get('publicationDate') else datetime.now()
@@ -87,14 +90,14 @@ def fetch_papers(query, max_results=5, sources=["arxiv"]):
     try:
         papers = []
         if len(sources) == 1:
-            max_per_source = max_results  # Use full limit for single source
+            max_per_source = max_results
         else:
-            max_per_source = max_results // len(sources) + (1 if max_results % len(sources) else 0)  # Distribute evenly
+            max_per_source = max_results // len(sources) + (1 if max_results % len(sources) else 0)
         if "arxiv" in sources:
             papers.extend(fetch_arxiv(query, max_per_source))
         if "semantic_scholar" in sources:
             papers.extend(fetch_semantic_scholar(query, max_per_source))
-        papers = papers[:max_results]  # Limit total results
+        papers = papers[:max_results]
         return papers
     except Exception as e:
         logging.error(f"Fetch papers error: {e}")

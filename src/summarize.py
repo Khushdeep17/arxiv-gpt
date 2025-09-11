@@ -1,32 +1,46 @@
 # src/summarize.py
 from langchain_groq import ChatGroq
-from langchain.prompts import ChatPromptTemplate
+from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 import os
+import logging
 
 load_dotenv()
 
-def summarize_paper(paper, model="llama-3.1-8b-instant"):
+# Create logs directory if it doesn't exist
+os.makedirs('logs', exist_ok=True)
+
+logging.basicConfig(filename='logs/arxiv_gpt.log', level=logging.INFO)
+
+def summarize_paper(paper, summary_format="bullet"):
     """
-    Summarize a paper's abstract into 3 bullet points using Groq API.
+    Summarize the abstract of a paper in the specified format (bullet or paragraph).
     """
     try:
+        # Initialize Groq LLM
         llm = ChatGroq(
-            model=model,
+            model="llama-3.1-70b-versatile",
             api_key=os.getenv("GROQ_API_KEY")
         )
 
-        template = """
-        Summarize the following research paper abstract in 3 concise bullet points:
-        Title: {title}
-        Abstract: {summary}
-        """
-        prompt = ChatPromptTemplate.from_template(template)
-        response = llm.invoke(prompt.format_messages(
-            title=paper["title"],
-            summary=paper["summary"]
-        ))
-        return response.content
+        # Define prompt based on format
+        if summary_format == "bullet":
+            prompt_template = PromptTemplate(
+                input_variables=["abstract"],
+                template="Summarize the following abstract in 3 concise bullet points:\n\n{abstract}"
+            )
+        else:  # paragraph
+            prompt_template = PromptTemplate(
+                input_variables=["abstract"],
+                template="Summarize the following abstract in a single concise paragraph (50-100 words):\n\n{abstract}"
+            )
+
+        # Create chain
+        chain = prompt_template | llm
+
+        # Run summarization
+        summary = chain.invoke({"abstract": paper['summary']}).content
+        return summary
     except Exception as e:
-        print(f"Error summarizing paper: {e}")
-        return "Summary unavailable."
+        logging.error(f"Summarization error for paper {paper['title']}: {e}")
+        return paper['summary']  # Return raw abstract on error
