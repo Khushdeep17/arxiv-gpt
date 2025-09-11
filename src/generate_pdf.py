@@ -10,6 +10,10 @@ def generate_pdf(papers, query):
     Generate a PDF report from the list of papers.
     """
     try:
+        if not papers:
+            print("No papers to generate PDF.")
+            return None
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_dir = "data"
         os.makedirs(output_dir, exist_ok=True)
@@ -31,11 +35,11 @@ def generate_pdf(papers, query):
             story.append(Paragraph(f"URL: {paper['url']}", styles['Normal']))
             story.append(Paragraph(f"Source: {'Semantic Scholar' if 'semanticscholar' in paper['url'] else 'arXiv'}", styles['Normal']))
             
-            # Summary (use raw abstract if summary is an error)
-            summary = paper['summary']
-            if summary.startswith("Error summarizing paper"):
+            # Summary (use raw abstract if summary is invalid)
+            summary = paper.get('summary', 'No summary available.')
+            if summary is None or isinstance(summary, str) and (summary.startswith("Error summarizing paper") or summary in ['None', 'No abstract available.']):
                 summary = paper.get('raw_summary', 'No summary available.')
-            story.append(Paragraph(f"Summary:", styles['Heading3']))
+            story.append(Paragraph("Summary:", styles['Heading3']))
             story.append(Paragraph(summary, styles['Normal']))
             story.append(Spacer(1, 12))
 
