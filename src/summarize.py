@@ -1,9 +1,9 @@
-# src/summarize.py
 from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
 import os
 import logging
+import re
 
 load_dotenv()
 
@@ -14,14 +14,13 @@ def summarize_paper(paper, model="llama-3.1-8b-instant"):
     try:
         abstract = paper.get("summary", "No abstract available.")
         if abstract == "No abstract available.":
-            logging.info(f"No abstract for paper: {paper['title']}")
             return abstract
 
         llm = ChatGroq(
             model=model,
             api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.0,
-            max_tokens=200
+            max_tokens=100
         )
 
         template = """
@@ -36,9 +35,10 @@ def summarize_paper(paper, model="llama-3.1-8b-instant"):
         )).content.strip()
 
         # Clean up response
+        response = re.sub(r'Here are (3|three) concise bullet points summarizing the research paper abstract:', '', response, flags=re.IGNORECASE)
         lines = [line.strip() for line in response.split('\n') if line.strip().startswith('-')]
         if len(lines) != 3:
-            logging.warning(f"Summary for {paper['title']} has {len(lines)} bullet points, returning raw abstract")
+            logging.warning(f"Summary for {paper['title']} has {len(lines)} bullet points, using raw abstract")
             return abstract
         return '\n'.join(lines)
     except Exception as e:

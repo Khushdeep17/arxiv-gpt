@@ -1,4 +1,3 @@
-# src/generate_pdf.py
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
@@ -35,7 +34,9 @@ def generate_pdf(papers, query, output_dir="data"):
             else:
                 for line in summary.split('\n'):
                     if line.strip():
-                        story.append(Paragraph(f"• {line.strip()[2:]}", styles['Normal']))  # Remove dash
+                        if line.strip().startswith('- '):
+                            line = line.strip()[2:]  # Remove dash
+                        story.append(Paragraph(f"• {line}", styles['Normal']))
             story.append(Spacer(1, 12))
             story.append(Paragraph("-" * 50, styles['Normal']))
             story.append(Spacer(1, 12))
