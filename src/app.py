@@ -53,7 +53,7 @@ st.markdown("""
     /* Divider */
     .paper-divider {
         border-top: 1px solid #e5e7eb;
-        margin: 5px 0;
+        margin: 15px 0;
     }
     /* Sidebar */
     .sidebar .sidebar-content {
