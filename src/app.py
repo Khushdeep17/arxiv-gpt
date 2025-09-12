@@ -1,3 +1,4 @@
+# src/app.py
 import streamlit as st
 from agent import run_agent
 import os
@@ -52,7 +53,7 @@ st.markdown("""
     /* Divider */
     .paper-divider {
         border-top: 1px solid #e5e7eb;
-        margin: 15px 0;
+        margin: 5px 0;
     }
     /* Sidebar */
     .sidebar .sidebar-content {
@@ -114,7 +115,6 @@ with st.form(key="research_form"):
     query = st.text_input("Enter a research topic:", "self-driving cars", help="e.g., machine learning, quantum computing")
     max_results = st.slider("Number of papers to fetch:", 1, 10, 3, help="Adjust the number of results")
     sources = st.multiselect("Select sources:", ["arXiv", "Semantic Scholar"], default=["arXiv", "Semantic Scholar"], help="Choose one or both sources")
-    summary_format = st.selectbox("Summary format:", ["Bullet Points", "Paragraph"], help="Choose how summaries are displayed")
     generate_pdf = st.checkbox("Generate PDF report", value=True, help="Download results as a PDF")
     submit_button = st.form_submit_button("Fetch & Summarize")
 
@@ -125,8 +125,7 @@ if submit_button and query and sources:
             query,
             max_results,
             generate_pdf_report=generate_pdf,
-            sources=[s.lower().replace(" ", "_") for s in sources],
-            summary_format=summary_format.lower().replace(" ", "_")
+            sources=[s.lower().replace(" ", "_") for s in sources]
         )
         if result.startswith("Unable to process"):
             st.error(result)
@@ -136,8 +135,7 @@ if submit_button and query and sources:
                 "query": query,
                 "sources": sources,
                 "result": result,
-                "pdf_filename": pdf_filename,
-                "summary_format": summary_format
+                "pdf_filename": pdf_filename
             })
 
             # Display results

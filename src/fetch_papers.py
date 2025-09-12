@@ -6,12 +6,11 @@ import requests
 import logging
 import os
 import time
-import urllib.parse
 
 # Create logs directory if it doesn't exist
 os.makedirs('logs', exist_ok=True)
 
-logging.basicConfig(filename='logs/arxiv_gpt.log', level=logging.DEBUG)
+logging.basicConfig(filename='logs/arxiv_gpt.log', level=logging.INFO)
 
 @tenacity.retry(
     stop=tenacity.stop_after_attempt(3),
@@ -32,11 +31,9 @@ def fetch_arxiv(query, max_results=5):
         )
         papers = []
         for result in client.results(search):
-            abstract = result.summary if result.summary else 'No abstract available.'
             papers.append({
                 'title': result.title,
-                'summary': abstract,
-                'raw_summary': abstract,
+                'summary': result.summary,
                 'url': result.pdf_url,
                 'authors': [author.name for author in result.authors],
                 'published': result.published
@@ -48,57 +45,40 @@ def fetch_arxiv(query, max_results=5):
         raise
 
 @tenacity.retry(
-    stop=tenacity.stop_after_attempt(5),
-    wait=tenacity.wait_exponential(multiplier=1, min=4, max=60),
+    stop=tenacity.stop_after_attempt(3),
+    wait=tenacity.wait_fixed(60),  # Wait 60s for 429 errors
     retry=tenacity.retry_if_exception_type(Exception),
     before_sleep=tenacity.before_sleep_log(logging.getLogger(), logging.DEBUG)
 )
 def fetch_semantic_scholar(query, max_results=5):
     """
-    Fetch papers from Semantic Scholar using direct HTTP request.
+    Fetch papers from Semantic Scholar using direct HTTP request to avoid pagination.
     """
     try:
-        # Preprocess query: normalize and encode
-        query = query.strip().lower().replace(" ", "+")
-        encoded_query = urllib.parse.quote(query)
-        url = f"https://api.semanticscholar.org/graph/v1/paper/search?query={encoded_query}&limit={max_results}&fields=title,abstract,url,authors,publicationDate"
+        url = f"https://api.semanticscholar.org/graph/v1/paper/search?query={query}&limit={max_results}&fields=title,abstract,url,authors,publicationDate"
         headers = {
             "User-Agent": "arXiv-GPT/1.0",
             "x-api-key": os.getenv("SEMANTIC_SCHOLAR_API_KEY", "")
         }
-        logging.debug(f"Sending Semantic Scholar request: {url}")
-        response = requests.get(url, headers=headers, timeout=15)
-        logging.debug(f"Semantic Scholar response status: {response.status_code}, headers: {response.headers}")
-        if response.status_code == 429:
-            logging.warning("Semantic Scholar rate limit hit, retrying after delay")
-            time.sleep(10)  # Longer delay for rate limits
-            raise Exception("Rate limit hit")
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         data = response.json().get('data', [])
-        logging.debug(f"Semantic Scholar response data: {len(data)} papers")
-
+        
         papers = []
         for paper in data[:max_results]:
-            abstract = paper.get('abstract', 'No abstract available.') if paper.get('abstract') else 'No abstract available.'
             papers.append({
                 'title': paper.get('title', 'Unknown'),
-                'summary': abstract,
-                'raw_summary': abstract,
+                'summary': paper.get('abstract', 'No abstract available.'),
                 'url': paper.get('url', f"https://www.semanticscholar.org/paper/{paper.get('paperId', 'unknown')}"),
                 'authors': [author.get('name', 'Unknown') for author in paper.get('authors', [])] or ['Unknown'],
                 'published': datetime.strptime(paper.get('publicationDate', datetime.now().strftime('%Y-%m-%d')), '%Y-%m-%d') if paper.get('publicationDate') else datetime.now()
             })
         logging.info(f"Fetched {len(papers)} papers from Semantic Scholar for query: {query}")
-        if not os.getenv("SEMANTIC_SCHOLAR_API_KEY"):
-            logging.debug("No Semantic Scholar API key, applying rate limit delay")
-            time.sleep(2)  # Increased delay
+        time.sleep(3.5)  # Respect rate limit
         return papers
-    except requests.exceptions.HTTPError as e:
-        logging.error(f"Semantic Scholar HTTP error: {e}, status: {e.response.status_code if e.response else 'N/A'}")
-        return []
     except Exception as e:
         logging.error(f"Semantic Scholar fetch error: {e}")
-        return []
+        raise
 
 def fetch_papers(query, max_results=5, sources=["arxiv"]):
     """
@@ -107,33 +87,14 @@ def fetch_papers(query, max_results=5, sources=["arxiv"]):
     try:
         papers = []
         if len(sources) == 1:
-            max_per_source = max_results
+            max_per_source = max_results  # Use full limit for single source
         else:
-            max_per_source = max_results // len(sources) + (1 if max_results % len(sources) else 0)
-        
+            max_per_source = max_results // len(sources) + (1 if max_results % len(sources) else 0)  # Distribute evenly
         if "arxiv" in sources:
-            try:
-                arxiv_papers = fetch_arxiv(query, max_per_source)
-                papers.extend(arxiv_papers)
-                logging.debug(f"Added {len(arxiv_papers)} arXiv papers")
-            except Exception as e:
-                logging.error(f"Failed to fetch arXiv papers: {e}")
-        
+            papers.extend(fetch_arxiv(query, max_per_source))
         if "semantic_scholar" in sources:
-            try:
-                semantic_papers = fetch_semantic_scholar(query, max_per_source)
-                papers.extend(semantic_papers)
-                logging.debug(f"Added {len(semantic_papers)} Semantic Scholar papers")
-            except Exception as e:
-                logging.error(f"Failed to fetch Semantic Scholar papers: {e}")
-        
-        # Sort by publication date and trim to max_results
-        if papers:
-            papers = sorted(papers, key=lambda x: x['published'], reverse=True)[:max_results]
-            logging.info(f"Total papers fetched: {len(papers)}")
-        else:
-            logging.warning(f"No papers found for query: {query}, sources: {sources}")
-        
+            papers.extend(fetch_semantic_scholar(query, max_per_source))
+        papers = papers[:max_results]  # Limit total results
         return papers
     except Exception as e:
         logging.error(f"Fetch papers error: {e}")
