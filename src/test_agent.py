@@ -2,6 +2,16 @@
 from agent import run_agent
 import traceback
 import time
+import logging
+import os
+
+# Centralize logging configuration
+os.makedirs('logs', exist_ok=True)
+logging.basicConfig(
+    filename='logs/arxiv_gpt.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 def main():
     query = "self-driving cars"

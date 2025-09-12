@@ -7,12 +7,7 @@ from dotenv import load_dotenv
 import os
 import logging
 
-# Create logs directory if it doesn't exist
-os.makedirs('logs', exist_ok=True)
-
 load_dotenv()
-
-logging.basicConfig(filename='logs/arxiv_gpt.log', level=logging.INFO)
 
 def run_agent(query, max_results=3, generate_pdf_report=False, sources=["arxiv"]):
     """
@@ -20,14 +15,28 @@ def run_agent(query, max_results=3, generate_pdf_report=False, sources=["arxiv"]
     Returns the formatted output and the PDF filename (if generated).
     """
     try:
-        # Initialize Groq LLM
+        if not query or not isinstance(query, str):
+            logging.error("Invalid query provided")
+            return "Invalid query provided.", None
+        if not sources or not all(s in ["arxiv", "semantic_scholar"] for s in sources):
+            logging.error("Invalid sources provided")
+            return "Invalid sources provided.", None
+        if not os.getenv("GROQ_API_KEY"):
+            logging.error("GROQ_API_KEY not found in .env")
+            return "Error: GROQ_API_KEY not found in .env", None
+        if "semantic_scholar" in sources and not os.getenv("SEMANTIC_SCHOLAR_API_KEY"):
+            logging.warning("No SEMANTIC_SCHOLAR_API_KEY found, rate limits may apply")
+
         llm = ChatGroq(
             model="llama-3.1-8b-instant",
-            api_key=os.getenv("GROQ_API_KEY")
+            api_key=os.getenv("GROQ_API_KEY"),
+            temperature=0.0,
+            max_tokens=200
         )
         logging.info(f"Fetching {max_results} papers for query: {query}, sources: {sources}")
         papers = fetch_papers(query, max_results, sources)
         if not papers:
+            logging.warning(f"No papers found for query: {query}")
             return "No papers found.", None
 
         result = []
@@ -46,7 +55,6 @@ def run_agent(query, max_results=3, generate_pdf_report=False, sources=["arxiv"]
                 f"{'-' * 50}"
             )
 
-        # Generate PDF if requested
         pdf_filename = None
         if generate_pdf_report:
             pdf_filename = generate_pdf(papers, query)
