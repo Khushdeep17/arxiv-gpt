@@ -15,35 +15,37 @@ def run_agent(query, max_results=3, generate_pdf_report=False):
     """
     try:
         if not query or not isinstance(query, str):
-            return "Invalid query provided.", None
+            return "Invalid query provided. Please enter a valid search term.", None
         if max_results > 10:
             max_results = 10  # Cap at 10
         if not os.getenv("GROQ_API_KEY"):
-            return "Error: GROQ_API_KEY not found in .env", None
+            return "Error: GROQ_API_KEY not found in .env file.", None
 
         llm = ChatGroq(
             model="llama-3.1-8b-instant",
             api_key=os.getenv("GROQ_API_KEY"),
-            temperature=0.0,
-            max_tokens=100  # Reduced for speed
+            temperature=0.2,
+            max_tokens=200
         )
         logging.info(f"Fetching {max_results} papers for query: {query}")
         papers = fetch_papers(query, max_results)
         if not papers:
-            return "No papers found.", None
+            return "No papers found for the query.", None
 
         result = []
         for i, paper in enumerate(papers, 1):
             logging.info(f"Summarizing paper {i}: {paper['title']}")
             summary = summarize_paper(paper)
-            paper['summary'] = summary
+            # Ensure markdown consistency with proper indentation
+            summary_lines = summary.split('\n')
+            formatted_summary = '\n'.join(f"  {line}" for line in summary_lines if line.strip())
             result.append(
-                f"**Paper {i}**\n"
+                f"Paper {i}\n"
                 f"Title: {paper['title']}\n"
                 f"Authors: {', '.join(paper['authors'])}\n"
                 f"Published: {paper['published'].strftime('%Y-%m-%d')}\n"
                 f"URL: {paper['url']}\n"
-                f"Summary:\n{summary}\n"
+                f"Summary:\n{formatted_summary}\n"
                 f"{'-' * 50}"
             )
 

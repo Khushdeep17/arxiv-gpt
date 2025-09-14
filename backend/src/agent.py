@@ -46,16 +46,19 @@ def run_agent(query, max_results=3, generate_pdf_report=False):
             }
             paper['summary'] = summary_dict
 
-            # Format summary as bullets
-            summary_text = "\n".join([f"- {line}" for line in summary_dict.get("summary", [])])
+            # Format summary as bullets with proper indentation
+            summary_lines = summary_dict.get("summary", [])
+            # Remove leading "- " from summary lines if present, as we'll add it with indentation
+            cleaned_summary_lines = [line[2:].strip() if line.startswith("- ") else line.strip() for line in summary_lines]
+            formatted_summary = "\n".join([f"  - {line}" for line in cleaned_summary_lines if line])
             result_lines.append(
-                f"**Paper {i}**\n"
+                f"Paper {i}\n"
                 f"Title: {paper['title']}\n"
                 f"Authors: {', '.join(paper['authors'])}\n"
                 f"Published: {paper['published'].strftime('%Y-%m-%d') if hasattr(paper['published'], 'strftime') else paper['published']}\n"
                 f"URL: {paper['url']}\n"
-                f"Summary:\n{summary_text}\n"
-                + "-"*50
+                f"Summary:\n{formatted_summary}\n"
+                f"{'-' * 50}"
             )
 
         pdf_filename = generate_pdf(papers, query) if generate_pdf_report else None
