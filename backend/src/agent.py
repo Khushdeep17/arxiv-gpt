@@ -13,57 +13,59 @@ def run_agent(query, max_results=3, generate_pdf_report=False):
     """
     Fetch and summarize papers from arXiv.
     Returns:
-        - formatted string ready for frontend display
+        - payload dict with structured paper data
         - PDF filename (if generate_pdf_report=True)
     """
     try:
         if not query or not isinstance(query, str):
-            return "Invalid query provided.", None
+            return {"papers": [], "query": query}, None
 
         if max_results > 10:
-            max_results = 10  # enforce max cap
+            max_results = 10
 
         papers = fetch_papers(query, max_results)
         if not papers:
-            return "No papers found.", None
+            return {"papers": [], "query": query}, None
 
-        result_lines = []
+        enriched_papers = []
 
-        for i, paper in enumerate(papers, start=1):
-            # Convert published string to datetime for formatting
-            published = paper['published']
+        for paper in papers:
+            # Normalize published date
+            published = paper.get("published")
             if isinstance(published, str):
                 try:
                     published = parse(published)
                 except Exception:
-                    published = paper['published']
-            paper['published'] = published
+                    pass
 
-            # Summarize using Groq if API key exists
-            summary_dict = summarize_paper(paper) if os.getenv("GROQ_API_KEY") else {
-                "summary": [paper['summary']],
-                "raw": paper['summary']
-            }
-            paper['summary'] = summary_dict
-
-            # Format summary as bullets with proper indentation
-            summary_lines = summary_dict.get("summary", [])
-            # Remove leading "- " from summary lines if present, as we'll add it with indentation
-            cleaned_summary_lines = [line[2:].strip() if line.startswith("- ") else line.strip() for line in summary_lines]
-            formatted_summary = "\n".join([f"  - {line}" for line in cleaned_summary_lines if line])
-            result_lines.append(
-                f"Paper {i}\n"
-                f"Title: {paper['title']}\n"
-                f"Authors: {', '.join(paper['authors'])}\n"
-                f"Published: {paper['published'].strftime('%Y-%m-%d') if hasattr(paper['published'], 'strftime') else paper['published']}\n"
-                f"URL: {paper['url']}\n"
-                f"Summary:\n{formatted_summary}\n"
-                f"{'-' * 50}"
+            paper["published"] = (
+                published.strftime("%Y-%m-%d")
+                if hasattr(published, "strftime")
+                else paper.get("published")
             )
 
-        pdf_filename = generate_pdf(papers, query) if generate_pdf_report else None
-        return "\n".join(result_lines), pdf_filename
+            # Summarize (Groq if available)
+            if os.getenv("GROQ_API_KEY"):
+                summary_dict = summarize_paper(paper)
+                summary_text = " ".join(summary_dict.get("summary", []))
+            else:
+                summary_text = paper.get("summary", "")
+
+            enriched_papers.append({
+                "title": paper.get("title"),
+                "authors": paper.get("authors", []),
+                "published": paper.get("published"),
+                "url": paper.get("url"),
+                "summary": summary_text
+            })
+
+        pdf_filename = generate_pdf(enriched_papers, query) if generate_pdf_report else None
+
+        return {
+            "papers": enriched_papers,
+            "query": query
+        }, pdf_filename
 
     except Exception as e:
         logging.error(f"Agent error: {e}")
-        return f"Unable to process request: {str(e)}", None
+        return {"papers": [], "query": query}, None

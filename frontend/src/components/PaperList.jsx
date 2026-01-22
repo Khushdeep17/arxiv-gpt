@@ -1,52 +1,63 @@
-import React, { useState } from 'react';
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/solid';
-import ReactMarkdown from 'react-markdown';
+import React from "react";
 
 function PaperList({ papers, pdfFilename }) {
-  const [expanded, setExpanded] = useState({});
-
-  const toggleExpand = (id) => {
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
+  if (!papers.length) {
+    return (
+      <p className="text-gray-300">
+        No papers to display. Try a new search.
+      </p>
+    );
+  }
 
   return (
-    <div>
-      <h2 className="text-2xl font-semibold text-blue-400 mb-4">Latest Papers</h2>
-      {papers.length === 0 && <p className="text-gray-300">No papers to display. Try a new search.</p>}
-      {papers.map((paper) => {
-        const summaryIndex = paper.text.indexOf("Summary:");
-        const preview = summaryIndex !== -1 ? paper.text.slice(0, summaryIndex) : paper.text;
+    <div className="space-y-6">
+      <h2 className="text-2xl font-semibold text-blue-400 mb-4">
+        Latest Papers
+      </h2>
 
-        return (
-          <div key={paper.id} className="bg-gray-700 p-6 rounded-lg shadow-lg mb-4">
-            <div className="paper-content prose prose-invert max-w-none">
-              <ReactMarkdown>
-                {expanded[paper.id] ? paper.text : preview}
-              </ReactMarkdown>
-            </div>
-            <button
-              onClick={() => toggleExpand(paper.id)}
-              className="text-blue-400 hover:underline mt-2 flex items-center"
-              aria-label={expanded[paper.id] ? 'Collapse summary' : 'Expand summary'}
-            >
-              {expanded[paper.id] ? 'Collapse' : 'Expand Summary'}
-              {expanded[paper.id] ? (
-                <ChevronUpIcon className="w-5 h-5 ml-2" />
-              ) : (
-                <ChevronDownIcon className="w-5 h-5 ml-2" />
-              )}
-            </button>
-          </div>
-        );
-      })}
-      {pdfFilename && (
-        <a
-          href={`/api/download_pdf/${pdfFilename}`}
-          className="inline-block mt-4 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold transition-colors"
-          download
+      {papers.map((p) => (
+        <div
+          key={p.id}
+          className="bg-gray-800 p-6 rounded-xl shadow-md border border-gray-700"
         >
-          Download PDF
-        </a>
+          <h3 className="text-xl font-semibold text-blue-400 mb-2">
+            {p.id}. {p.title}
+          </h3>
+
+          <p className="text-sm text-gray-400 mb-1">
+            <span className="font-medium">Authors:</span> {p.authors}
+          </p>
+
+          <p className="text-sm text-gray-400 mb-3">
+            <span className="font-medium">Published:</span> {p.published}
+          </p>
+
+          <a
+            href={p.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 underline text-sm"
+          >
+            View PDF
+          </a>
+
+          <div className="mt-4">
+            <p className="text-gray-200 leading-relaxed">
+              {p.summary}
+            </p>
+          </div>
+        </div>
+      ))}
+
+      {pdfFilename && (
+        <div className="mt-6 text-center">
+          <a
+            href={`http://127.0.0.1:8000/download_pdf?filename=${pdfFilename}`}
+            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg shadow"
+          >
+            Download PDF Report
+          </a>
+        </div>
       )}
     </div>
   );
