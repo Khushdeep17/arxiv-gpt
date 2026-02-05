@@ -16,7 +16,7 @@ def fetch_papers(query, max_results=5):
     Returns a list of dicts with clean fields.
     """
     try:
-        client = arxiv.Client()
+        client = arxiv.Client(page_size=max_results)
         search = arxiv.Search(
             query=query.strip().lower(),
             max_results=max_results,
@@ -31,7 +31,7 @@ def fetch_papers(query, max_results=5):
                 "title": result.title,
                 "summary": abstract,   # raw abstract, summarizer will replace with bullet list
                 "url": result.pdf_url,
-                "authors": [author.name for author in result.authors],
+                "authors": list({author.name for author in result.authors}),
                 "published": result.published.strftime("%Y-%m-%d")  # string format
             })
         logging.info(f"Fetched {len(papers)} papers from arXiv for query: {query}")

@@ -9,57 +9,87 @@ from .generate_pdf import generate_pdf
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
+
+def normalize_date(published):
+    try:
+        if isinstance(published, str):
+            published = parse(published)
+
+        if hasattr(published, "strftime"):
+            return published.strftime("%Y-%m-%d")
+
+    except Exception:
+        pass
+
+    return str(published)
+
+
 def run_agent(query, max_results=3, generate_pdf_report=False):
     """
-    Fetch and summarize papers from arXiv.
+    Production-safe agent.
+
     Returns:
-        - payload dict with structured paper data
-        - PDF filename (if generate_pdf_report=True)
+        payload dict
+        pdf filename
     """
+
+    if not query or not isinstance(query, str):
+        return {"papers": [], "query": query}, None
+
+    max_results = min(max_results, 10)
+
     try:
-        if not query or not isinstance(query, str):
-            return {"papers": [], "query": query}, None
-
-        if max_results > 10:
-            max_results = 10
-
         papers = fetch_papers(query, max_results)
+
         if not papers:
             return {"papers": [], "query": query}, None
 
         enriched_papers = []
 
         for paper in papers:
-            # Normalize published date
-            published = paper.get("published")
-            if isinstance(published, str):
-                try:
-                    published = parse(published)
-                except Exception:
-                    pass
 
-            paper["published"] = (
-                published.strftime("%Y-%m-%d")
-                if hasattr(published, "strftime")
-                else paper.get("published")
+            paper["published"] = normalize_date(
+                paper.get("published")
             )
 
-            # Summarize (Groq if available)
+            # ---------- SAFE SUMMARY ----------
+            summary_structured = None
+
             if os.getenv("GROQ_API_KEY"):
-                summary_dict = summarize_paper(paper)
-                summary_text = " ".join(summary_dict.get("summary", []))
-            else:
-                summary_text = paper.get("summary", "")
+                try:
+                    summary_structured = summarize_paper(paper)
+
+                except Exception as e:
+                    logger.error(f"Summarization failed: {e}")
+
+            # fallback if LLM fails
+            if not summary_structured:
+                summary_structured = {
+                    "tldr": paper.get("summary", "")[:300],
+                    "key_contributions": [],
+                    "methods": [],
+                    "results": [],
+                    "why_it_matters": "See paper.",
+                    "citation": f"{paper.get('authors',['Unknown'])[0]} et al."
+                }
 
             enriched_papers.append({
                 "title": paper.get("title"),
                 "authors": paper.get("authors", []),
                 "published": paper.get("published"),
                 "url": paper.get("url"),
-                "summary": summary_text
+                "summary": summary_structured
             })
 
-        pdf_filename = generate_pdf(enriched_papers, query) if generate_pdf_report else None
+        pdf_filename = None
+
+        if generate_pdf_report:
+            try:
+                pdf_filename = generate_pdf(enriched_papers, query)
+            except Exception as e:
+                logger.error(f"PDF generation failed: {e}")
 
         return {
             "papers": enriched_papers,
@@ -67,5 +97,5 @@ def run_agent(query, max_results=3, generate_pdf_report=False):
         }, pdf_filename
 
     except Exception as e:
-        logging.error(f"Agent error: {e}")
+        logger.error(f"Agent fatal error: {e}")
         return {"papers": [], "query": query}, None
