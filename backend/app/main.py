@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from app.api.routes import router
 from app.core.logging import setup_logging
@@ -13,7 +15,7 @@ app = FastAPI(
     version="2.0"
 )
 
-# CORS (tighten later for prod)
+# CORS (tighten later)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,8 +24,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# register routes
+# ✅ API ROUTES FIRST
 app.include_router(router)
+
+
+# ✅ SERVE REACT BUILD
+app.mount(
+    "/static",
+    StaticFiles(directory="app/static/static"),
+    name="static"
+)
+
+
+# ✅ ROOT → React index.html
+@app.get("/")
+def serve_react():
+    return FileResponse("app/static/index.html")
+
 
 @app.get("/health")
 def health():
