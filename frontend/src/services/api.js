@@ -1,11 +1,12 @@
 import axios from "axios";
 
+// SAME ORIGIN calls
 const API = axios.create({
-    baseURL: process.env.REACT_APP_API_URL
+    baseURL: "/"
 });
 
 export const searchPapers = (data) =>
     API.post("/search", data);
 
 export const downloadPdfUrl = (filename) =>
-    `${API.defaults.baseURL}/download_pdf?filename=${filename}`;
+    `/download_pdf?filename=${filename}`;

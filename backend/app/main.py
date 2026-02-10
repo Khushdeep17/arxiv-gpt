@@ -6,7 +6,6 @@ from fastapi.responses import FileResponse
 from app.api.routes import router
 from app.core.logging import setup_logging
 
-# initialize logging FIRST
 setup_logging()
 
 app = FastAPI(
@@ -15,7 +14,7 @@ app = FastAPI(
     version="2.0"
 )
 
-# CORS (tighten later)
+# CORS (safe to keep *)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,21 +23,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ API ROUTES FIRST
+# ✅ API FIRST
 app.include_router(router)
 
-
-# ✅ SERVE REACT BUILD
+# ✅ Serve React static files
 app.mount(
     "/static",
     StaticFiles(directory="app/static/static"),
     name="static"
 )
 
-
-# ✅ ROOT → React index.html
+# ✅ Root
 @app.get("/")
 def serve_react():
+    return FileResponse("app/static/index.html")
+
+
+# ⭐ VERY IMPORTANT
+# React Router refresh fix
+@app.get("/{full_path:path}")
+def catch_all(full_path: str):
     return FileResponse("app/static/index.html")
 
 
