@@ -9,3 +9,4 @@ venv
 logs
 data
 node_modules
+frontend/build

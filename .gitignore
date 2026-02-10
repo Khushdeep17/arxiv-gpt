@@ -4,7 +4,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-data
+data/
 # Node
 node_modules/
 npm-debug.log*
@@ -29,3 +29,16 @@ logs/
 Thumbs.db
 .vscode/
 .idea/
+
+# Docker
+*.tar
+*.gz
+
+# Testing
+.coverage
+.pytest_cache/
+
+# Mac
+.AppleDouble
+.LSOverride
+
