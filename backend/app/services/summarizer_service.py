@@ -9,16 +9,20 @@ logger = logging.getLogger(__name__)
 
 
 PROMPT = ChatPromptTemplate.from_template("""
-Return ONLY valid JSON.
+You summarize research papers for a dashboard that users scan in under 30 seconds.
+Return ONLY valid JSON. Keep every field concise and easy to scan.
+Focus on the main contribution, core methodology, and headline findings.
+Do not rewrite the abstract or include unnecessary implementation details.
+Use short bullet points and do not invent information.
 
 Schema:
 {{
- "tldr": "1 sentence",
- "key_contributions": ["bullet"],
- "methods": ["bullet"],
- "results": ["bullet"],
- "why_it_matters": "1-2 sentences",
- "citation": "Author et al., Year"
+ "tldr": "1 concise sentence",
+ "key_contributions": ["1-3 concise bullets"],
+ "methods": ["1-3 concise bullets"],
+ "results": ["1-3 concise bullets"],
+ "why_it_matters": "1 concise sentence",
+ "citation": "Surname et al., YEAR"
 }}
 
 Title: {title}
@@ -32,10 +36,10 @@ Abstract:
 
 # 🔥 Create ONCE (Huge performance win)
 llm = ChatGroq(
-    model="llama-3.3-70b-versatile",
+    model="openai/gpt-oss-120b",
     groq_api_key=settings.GROQ_API_KEY,
     temperature=0.1,
-    max_tokens=700
+    max_tokens=1400
 )
 
 

@@ -1,37 +1,37 @@
 {
-  "timestamp": "2026-03-02T10:45:00.014614",
+  "timestamp": "2026-07-24T00:03:58.917103",
   "n_queries": 20,
   "n_successful": 20,
   "pipeline_reliability": 100.0,
   "schema_validity": 100.0,
   "avg_completeness": 100.0,
   "latency": {
-    "avg": 7.11,
-    "median": 9.01,
-    "p90": 10.11,
-    "p95": 10.74,
-    "std": 3.19,
-    "variance": 10.18,
-    "iqr": 6.102,
-    "min": 3.07,
-    "max": 10.76,
-    "outliers_iqr": 0
+    "avg": 23.52,
+    "median": 24.24,
+    "p90": 28.32,
+    "p95": 28.47,
+    "std": 4.69,
+    "variance": 22.04,
+    "iqr": 4.251,
+    "min": 7.06,
+    "max": 29.22,
+    "outliers_iqr": 1
   },
   "summary_quality": {
-    "avg_tldr_words": 23.1,
-    "avg_methods_words": 23.3,
-    "avg_results_words": 30.8,
-    "avg_total_words": 148.3,
-    "length_variance": 93.4,
-    "length_std": 9.7
+    "avg_tldr_words": 18.5,
+    "avg_methods_words": 33.3,
+    "avg_results_words": 37.9,
+    "avg_total_words": 144.3,
+    "length_variance": 118.3,
+    "length_std": 10.9
   },
   "correlation": {
-    "latency_vs_length_global": 0.005,
+    "latency_vs_length_global": 0.1,
     "latency_vs_length_by_tier": {
-      "A_NLP": 0.957,
-      "B_Vision": 0.128,
-      "C_Agents": 0.952,
-      "D_Cross": 0.668
+      "A_NLP": 0.253,
+      "B_Vision": 0.065,
+      "C_Agents": -0.338,
+      "D_Cross": -0.251
     }
   },
   "tier_latency": {
@@ -42,46 +42,46 @@
       "D_Cross": 4
     },
     "mean_latency": {
-      "A_NLP": 3.45,
-      "B_Vision": 7.79,
-      "C_Agents": 9.67,
-      "D_Cross": 10.11
+      "A_NLP": 21.97,
+      "B_Vision": 26.08,
+      "C_Agents": 22.48,
+      "D_Cross": 24.09
     },
     "median_latency": {
-      "A_NLP": 3.59,
-      "B_Vision": 9.53,
-      "C_Agents": 9.73,
-      "D_Cross": 10.04
+      "A_NLP": 24.67,
+      "B_Vision": 26.32,
+      "C_Agents": 22.25,
+      "D_Cross": 24.43
     },
     "std_latency": {
-      "A_NLP": 0.28,
-      "B_Vision": 2.81,
-      "C_Agents": 0.92,
-      "D_Cross": 0.47
+      "A_NLP": 7.35,
+      "B_Vision": 2.41,
+      "C_Agents": 1.11,
+      "D_Cross": 2.02
     },
     "min_latency": {
-      "A_NLP": 3.07,
-      "B_Vision": 3.38,
-      "C_Agents": 8.49,
-      "D_Cross": 9.62
+      "A_NLP": 7.06,
+      "B_Vision": 22.89,
+      "C_Agents": 21.4,
+      "D_Cross": 21.39
     },
     "max_latency": {
-      "A_NLP": 3.69,
-      "B_Vision": 9.85,
-      "C_Agents": 10.74,
-      "D_Cross": 10.76
+      "A_NLP": 29.22,
+      "B_Vision": 28.43,
+      "C_Agents": 24.01,
+      "D_Cross": 26.12
     },
     "p90_latency": {
-      "A_NLP": 3.69,
-      "B_Vision": 9.76,
-      "C_Agents": 10.44,
-      "D_Cross": 10.54
+      "A_NLP": 27.69,
+      "B_Vision": 28.38,
+      "C_Agents": 23.53,
+      "D_Cross": 25.78
     },
     "p95_latency": {
-      "A_NLP": 3.69,
-      "B_Vision": 9.8,
-      "C_Agents": 10.59,
-      "D_Cross": 10.65
+      "A_NLP": 28.46,
+      "B_Vision": 28.4,
+      "C_Agents": 23.77,
+      "D_Cross": 25.95
     }
   }
 }
