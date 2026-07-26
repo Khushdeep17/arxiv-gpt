@@ -105,5 +105,8 @@ Latency scales with query complexity — inference-dominated, not output-size-de
 - Deterministic LLM output enforcement at scale
 - Production-grade FastAPI backend engineering
 - Full-stack containerized deployment
-- Latency characterization and reliability benchmarking
+- Latency characterization and reliability benchmarking 
+
+for local run run cd backend then 
+uvicorn app.main:app --reload
 
