@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 
-function SearchBar({ onSearch, loading }) {
-  const [query, setQuery] = useState("self-driving cars");
+function SearchBar({ query, setQuery, onSearch, loading }) {
   const [maxResults, setMaxResults] = useState(3);
   const [generatePdf, setGeneratePdf] = useState(true);
 

@@ -5,6 +5,14 @@ import tenacity
 
 logger = logging.getLogger(__name__)
 
+# Transient network/service exceptions that warrant exponential retry
+TRANSIENT_ERRORS = (
+    arxiv.ArxivError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+)
+
 # Lightweight query expansion mapping for common AI/CS topics
 SEARCH_ALIASES = {
     "self-driving": '"autonomous driving" OR "autonomous vehicles" OR "self-driving"',
@@ -93,39 +101,47 @@ class ArxivService:
         return optimized
 
     @staticmethod
-    @lru_cache(maxsize=32)
     @tenacity.retry(
         stop=tenacity.stop_after_attempt(3),
         wait=tenacity.wait_exponential(multiplier=1, min=2, max=6),
-        retry=tenacity.retry_if_exception_type(Exception),
+        retry=tenacity.retry_if_exception_type(TRANSIENT_ERRORS),
+        reraise=True,
     )
+    def _search_arxiv(query: str, max_results: int = 5):
+        optimized_query = ArxivService._optimize_query(query)
+        client = arxiv.Client(page_size=max_results)
+
+        search = arxiv.Search(
+            query=optimized_query,
+            max_results=max_results,
+            sort_by=arxiv.SortCriterion.Relevance
+        )
+
+        papers = []
+
+        for result in client.results(search):
+            papers.append({
+                "title": result.title,
+                "summary": result.summary.strip() if result.summary else "",
+                "url": result.pdf_url,
+                "authors": [a.name for a in result.authors],
+                "published": result.published.strftime("%Y-%m-%d"),
+                "category": result.primary_category
+            })
+
+        return papers, optimized_query
+
+    @staticmethod
+    @lru_cache(maxsize=32)
+    def _cached_search(query: str, max_results: int = 5):
+        return ArxivService._search_arxiv(query, max_results)
+
+    @staticmethod
     def fetch_papers(query: str, max_results: int = 5):
         try:
-            optimized_query = ArxivService._optimize_query(query)
-            client = arxiv.Client(page_size=max_results)
-
-            search = arxiv.Search(
-                query=optimized_query,
-                max_results=max_results,
-                sort_by=arxiv.SortCriterion.Relevance
-            )
-
-            papers = []
-
-            for result in client.results(search):
-                papers.append({
-                    "title": result.title,
-                    "summary": result.summary.strip() if result.summary else "",
-                    "url": result.pdf_url,
-                    "authors": [a.name for a in result.authors],
-                    "published": result.published.strftime("%Y-%m-%d"),
-                    "category": result.primary_category
-                })
-
+            papers, optimized_query = ArxivService._cached_search(query, max_results)
             logger.info(f"Fetched {len(papers)} papers for query='{query}' (optimized='{optimized_query}')")
             return papers
-
         except Exception as e:
-            logger.error(f"Arxiv fetch failed: {e}")
+            logger.error(f"Arxiv fetch failed after retries: {e}")
             return []
-

@@ -39,13 +39,12 @@ def serve_react():
     return FileResponse("app/static/index.html")
 
 
-# ⭐ VERY IMPORTANT
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 # React Router refresh fix
 @app.get("/{full_path:path}")
 def catch_all(full_path: str):
     return FileResponse("app/static/index.html")
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}

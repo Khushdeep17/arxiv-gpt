@@ -9,4 +9,4 @@ export const searchPapers = (data) =>
     API.post("/search", data);
 
 export const downloadPdfUrl = (filename) =>
-    `/download_pdf?filename=${filename}`;
+    `/download_pdf?filename=${encodeURIComponent(filename)}`;
