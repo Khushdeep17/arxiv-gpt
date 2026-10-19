@@ -1,6 +1,44 @@
-
+# Python
 venv/
 __pycache__/
 *.pyc
-.env
+*.pyo
+*.pyd
 data/
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build
+frontend/build/
+frontend/.parcel-cache
+dist/
+*.local
+
+# Logs
+*.log
+logs/
+
+# Environment & secrets
+.env
+
+# OS / IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Docker
+*.tar
+*.gz
+
+# Testing
+.coverage
+.pytest_cache/
+
+# Mac
+.AppleDouble
+.LSOverride
+

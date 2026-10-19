@@ -1,23 +1,58 @@
-# 📚 arXiv-GPT: AI-Powered Research Assistant
 
-![Demo](demo.gif)
+# arXiv-GPT — Production AI Research Assistant
 
-**arXiv-GPT** is an AI-powered research assistant that fetches recent papers from arXiv, summarizes them using a large language model (LLM), and presents the results in a clean, interactive interface. Perfect for researchers, students, or anyone curious about the latest in any field!
+**arXiv-GPT** is a production-grade AI research assistant that automates literature review by retrieving arXiv papers and converting unstructured research text into structured, decision-ready insights using Large Language Models.
 
-## 🚀 Features
-- **Query-based paper fetching**: Search arXiv for papers on any topic (e.g., "self-driving cars").
-- **Automated summarization**: Generates concise 3-bullet-point summaries using an LLM.
-- **Interactive UI**: Built with Streamlit for easy topic exploration.
-- **Structured output**: Displays paper title, authors, publication date, and summary with links to originals.
+Built as a real-world system (not a notebook), it compresses hours of paper reading into minutes.
 
-## 🛠 Tech Stack
-- **Python**: Core programming language.
-- **LangChain**: For LLM integration and agent logic.
-- **OpenAI**: GPT-3.5-turbo for summarization (supports local models like Ollama).
-- **arXiv API**: Fetches the latest research papers.
-- **Streamlit**: Interactive web interface.
+---
 
-## 📸 Demo
-*(Insert a screenshot or GIF here after recording your app in action. Use a tool like ShareX or LICEcap.)*
+## 🚀 Key Features
 
-Example output for query "self-driving cars":
+- Intelligent arXiv paper retrieval with metadata parsing  
+- Structured LLM-driven research summaries (TL;DR, methods, contributions, results, impact)  
+- Automated generation of research-ready PDF reports  
+- Clean, research-first web interface  
+- Modular, production-ready backend architecture  
+- Fully containerized with Docker and deployed on Render  
+
+---
+
+## 🧠 Tech Stack
+
+### Backend
+- FastAPI  
+- LangChain  
+- Groq (Llama-3)  
+- ReportLab  
+- Tenacity  
+
+### Frontend
+- React  
+- TailwindCSS  
+
+### Infrastructure
+- Docker  
+- Docker Compose  
+- Render (Production Deployment)  
+
+---
+
+## ⚙️ System Architecture
+
+```
+
+React Frontend
+↓
+FastAPI Gateway
+↓
+Research Orchestrator
+↓
+arXiv Retrieval → LLM Summarization → PDF Generation
+↓
+Structured Research Output
+
+```
+
+Single production service serving both API and frontend with unified deployment.
+
