@@ -8,6 +8,7 @@ import { searchPapers } from "./services/api";
 
 export default function App() {
 
+  const [query, setQuery] = useState("self-driving cars");
   const [papers, setPapers] = useState([]);
   const [pdfFilename, setPdfFilename] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -69,6 +70,7 @@ export default function App() {
           history={history}
           setPapers={setPapers}
           setPdfFilename={setPdfFilename}
+          setQuery={setQuery}
         />
       </div>
 
@@ -81,6 +83,8 @@ export default function App() {
 
         <div className="w-full max-w-3xl bg-gray-800 p-6 rounded-xl shadow-lg">
           <SearchBar
+            query={query}
+            setQuery={setQuery}
             onSearch={handleSearch}
             loading={loading}
           />

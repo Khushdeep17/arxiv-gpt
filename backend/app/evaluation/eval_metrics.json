@@ -1,0 +1,87 @@
+{
+  "timestamp": "2026-07-27T19:50:06.245365",
+  "n_queries": 20,
+  "n_successful": 20,
+  "pipeline_reliability": 100.0,
+  "schema_validity": 100.0,
+  "avg_completeness": 100.0,
+  "latency": {
+    "avg": 21.43,
+    "median": 21.89,
+    "p90": 25.06,
+    "p95": 26.66,
+    "std": 4.53,
+    "variance": 20.52,
+    "iqr": 1.935,
+    "min": 5.21,
+    "max": 29.05,
+    "outliers_iqr": 3
+  },
+  "summary_quality": {
+    "avg_tldr_words": 15.8,
+    "avg_methods_words": 31.3,
+    "avg_results_words": 31.9,
+    "avg_total_words": 126.6,
+    "length_variance": 90.7,
+    "length_std": 9.5
+  },
+  "correlation": {
+    "latency_vs_length_global": 0.059,
+    "latency_vs_length_by_tier": {
+      "A_NLP": -0.3,
+      "B_Vision": 0.685,
+      "C_Agents": 0.666,
+      "D_Cross": 0.406
+    }
+  },
+  "tier_latency": {
+    "count": {
+      "A_NLP": 7,
+      "B_Vision": 5,
+      "C_Agents": 4,
+      "D_Cross": 4
+    },
+    "mean_latency": {
+      "A_NLP": 21.37,
+      "B_Vision": 20.91,
+      "C_Agents": 22.59,
+      "D_Cross": 21.04
+    },
+    "median_latency": {
+      "A_NLP": 22.38,
+      "B_Vision": 20.88,
+      "C_Agents": 21.66,
+      "D_Cross": 20.96
+    },
+    "std_latency": {
+      "A_NLP": 7.6,
+      "B_Vision": 1.2,
+      "C_Agents": 2.71,
+      "D_Cross": 1.69
+    },
+    "min_latency": {
+      "A_NLP": 5.21,
+      "B_Vision": 19.14,
+      "C_Agents": 20.52,
+      "D_Cross": 19.55
+    },
+    "max_latency": {
+      "A_NLP": 29.05,
+      "B_Vision": 22.03,
+      "C_Agents": 26.54,
+      "D_Cross": 22.68
+    },
+    "p90_latency": {
+      "A_NLP": 26.56,
+      "B_Vision": 22.02,
+      "C_Agents": 25.21,
+      "D_Cross": 22.57
+    },
+    "p95_latency": {
+      "A_NLP": 27.8,
+      "B_Vision": 22.02,
+      "C_Agents": 25.87,
+      "D_Cross": 22.62
+    }
+  }
+}

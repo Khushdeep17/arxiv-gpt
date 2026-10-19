@@ -1,25 +1,45 @@
 import React from "react";
 import { FileText } from "lucide-react"; // lightweight icon
+import { downloadPdfUrl } from "../services/api";
 
-function HistorySidebar({ history, setPapers, setPdfFilename }) {
+function HistorySidebar({ history, setPapers, setPdfFilename, setQuery }) {
   const handleHistoryClick = (entry) => {
-    if (
-      entry.result.includes("No papers found") ||
-      entry.result.includes("Unable to process")
-    ) {
-      setPapers([]);
-      setPdfFilename(null);
-    } else {
-      const paperList = entry.result
-        .split("--------------------------------------------------")
-        .filter((p) => p.trim())
-        .map((p) => ({
-          text: p,
-          id: Math.random().toString(),
-        }));
-      setPapers(paperList);
-      setPdfFilename(entry.pdfFilename);
+    if (!entry) return;
+
+    if (setQuery && entry.query) {
+      setQuery(entry.query);
     }
+
+    if (Array.isArray(entry.papers)) {
+      setPapers(entry.papers);
+      setPdfFilename(entry.pdfFilename || null);
+      return;
+    }
+
+    if (typeof entry.result === "string") {
+      if (
+        entry.result.includes("No papers found") ||
+        entry.result.includes("Unable to process")
+      ) {
+        setPapers([]);
+        setPdfFilename(null);
+      } else {
+        const paperList = entry.result
+          .split("--------------------------------------------------")
+          .filter((p) => p.trim())
+          .map((p, idx) => ({
+            id: idx + 1,
+            title: p.trim().split("\n")[0] || "Untitled Paper",
+            summary: { tldr: p.trim() },
+          }));
+        setPapers(paperList);
+        setPdfFilename(entry.pdfFilename || null);
+      }
+      return;
+    }
+
+    setPapers([]);
+    setPdfFilename(null);
   };
 
   return (
@@ -46,10 +66,11 @@ function HistorySidebar({ history, setPapers, setPdfFilename }) {
               <span className="truncate">{entry.query}</span>
               {entry.pdfFilename && (
                 <a
-                  href={`/api/download_pdf/${entry.pdfFilename}`}
+                  href={downloadPdfUrl(entry.pdfFilename)}
                   className="ml-2 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
                   download
                   onClick={(e) => e.stopPropagation()}
+                  aria-label={`Download PDF for ${entry.query}`}
                 >
                   <FileText size={16} />
                 </a>

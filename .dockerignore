@@ -1,0 +1,37 @@
+# Version control
+.git/
+.gitignore
+
+# Python virtual environments & bytecode
+venv/
+.venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.pytest_cache/
+.coverage
+
+# Node dependencies and build caches
+**/node_modules/
+frontend/build/
+frontend/.parcel-cache/
+
+# Local secrets & environment files
+.env
+.env.*
+backend/.env
+
+# Local runtime logs and data
+logs/
+backend/logs/
+*.log
+data/
+backend/data/
+*.pdf
+
+# IDE and OS artifacts
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
