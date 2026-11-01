@@ -1,8 +1,27 @@
 import React from "react";
-import { FileText } from "lucide-react"; // lightweight icon
+import { FileText } from "lucide-react";
 import { downloadPdfUrl } from "../services/api";
 
-function HistorySidebar({ history, setPapers, setPdfFilename, setQuery }) {
+// ----------------------------------------------------------------
+// HistorySidebar
+//
+// Receives history entries from the parent (App.jsx) which manages
+// both the in-session guest list and the server-fetched list for
+// authenticated users.
+//
+// Each history entry shape:
+//   { query, papers: [...], pdfFilename, timestamp }
+//
+// The parent is responsible for clearing/replacing the history list
+// on login/logout so this component never holds stale account data.
+// ----------------------------------------------------------------
+function HistorySidebar({
+  history,
+  setPapers,
+  setPdfFilename,
+  setQuery,
+  loading = false,
+}) {
   const handleHistoryClick = (entry) => {
     if (!entry) return;
 
@@ -16,6 +35,7 @@ function HistorySidebar({ history, setPapers, setPdfFilename, setQuery }) {
       return;
     }
 
+    // Legacy text-result format from older history entries
     if (typeof entry.result === "string") {
       if (
         entry.result.includes("No papers found") ||
@@ -51,34 +71,41 @@ function HistorySidebar({ history, setPapers, setPdfFilename, setQuery }) {
 
       {/* History List */}
       <div className="flex-1 overflow-y-auto p-2 space-y-2">
-        {history.length === 0 && (
+        {loading && (
+          <p className="text-gray-400 text-sm px-2 animate-pulse">
+            Loading history…
+          </p>
+        )}
+
+        {!loading && history.length === 0 && (
           <p className="text-gray-400 text-sm px-2">No search history yet.</p>
         )}
 
-        {history.map((entry, idx) => (
-          <div key={idx} className="group">
-            <button
-              onClick={() => handleHistoryClick(entry)}
-              className="w-full flex justify-between items-center px-3 py-2 rounded-lg 
-                         text-gray-300 hover:bg-gray-700 hover:text-white transition-colors text-sm"
-              aria-label={`View search: ${entry.query}`}
-            >
-              <span className="truncate">{entry.query}</span>
-              {entry.pdfFilename && (
-                <a
-                  href={downloadPdfUrl(entry.pdfFilename)}
-                  className="ml-2 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                  download
-                  onClick={(e) => e.stopPropagation()}
-                  aria-label={`Download PDF for ${entry.query}`}
-                >
-                  <FileText size={16} />
-                </a>
-              )}
-            </button>
-            <p className="text-xs text-gray-500 px-3">{entry.timestamp}</p>
-          </div>
-        ))}
+        {!loading &&
+          history.map((entry, idx) => (
+            <div key={entry.id || idx} className="group">
+              <button
+                onClick={() => handleHistoryClick(entry)}
+                className="w-full flex justify-between items-center px-3 py-2 rounded-lg
+                           text-gray-300 hover:bg-gray-700 hover:text-white transition-colors text-sm"
+                aria-label={`View search: ${entry.query}`}
+              >
+                <span className="truncate">{entry.query}</span>
+                {entry.pdfFilename && (
+                  <a
+                    href={downloadPdfUrl(entry.pdfFilename)}
+                    className="ml-2 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    download
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`Download PDF for ${entry.query}`}
+                  >
+                    <FileText size={16} />
+                  </a>
+                )}
+              </button>
+              <p className="text-xs text-gray-500 px-3">{entry.timestamp}</p>
+            </div>
+          ))}
       </div>
     </div>
   );

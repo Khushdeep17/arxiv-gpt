@@ -5,6 +5,9 @@ __pycache__/
 *.pyo
 *.pyd
 data/
+*.db
+*.sqlite
+*.sqlite3
 # Node
 node_modules/
 npm-debug.log*

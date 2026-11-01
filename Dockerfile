@@ -37,6 +37,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend application source
 COPY backend/app ./app
 
+# Copy database migration configuration and scripts
+COPY backend/alembic ./alembic
+COPY backend/alembic.ini .
+
 # Copy compiled frontend from stage 1 into the exact directory served by FastAPI
 COPY --from=frontend-builder /app/frontend/build ./app/static
 
