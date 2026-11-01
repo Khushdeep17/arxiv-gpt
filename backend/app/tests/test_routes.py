@@ -1,34 +1,78 @@
 import os
 import unittest
+import uuid
 from unittest.mock import patch
 from starlette.testclient import TestClient
+from sqlalchemy.orm import sessionmaker
 
-# Provide placeholder for Groq import requirement in test environment
+# Provide placeholders for environment variables in test environment
 os.environ.setdefault("GROQ_API_KEY", "mock_groq_key_for_testing")
+os.environ.setdefault("JWT_SECRET_KEY", "mock_test_jwt_secret_key_for_routes_suite_32b!")
 
-from app.main import app
+from app.db.base import Base
+from app.db.session import get_db
+from app.models import db_models
+from app.main import app as fastapi_app
+from app.core.security import create_access_token, hash_password
+from app.tests.db_test_utils import create_test_engine, safe_clean_test_tables, safe_teardown_test_db
 
 
 class TestRoutes(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.client = TestClient(app)
+        cls.test_engine = None
+        cls.TestSession = None
+        cls.client = None
+        engine = create_test_engine()
+        cls.test_engine = engine
+
+        try:
+            Base.metadata.create_all(engine)
+            cls.TestSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+            def override_get_db():
+                db = cls.TestSession()
+                try:
+                    yield db
+                finally:
+                    db.close()
+
+            fastapi_app.dependency_overrides[get_db] = override_get_db
+            cls.client = TestClient(fastapi_app)
+        except Exception:
+            # F-5: Restore dependency override and dispose engine on setup failure
+            fastapi_app.dependency_overrides.pop(get_db, None)
+            try:
+                engine.dispose()
+            except Exception:
+                pass
+            cls.test_engine = None
+            raise
 
     @classmethod
     def tearDownClass(cls):
-        # Clean up any test artifacts or empty directories
+        # F-2: Restore only the specific dependency override owned by this test suite
+        try:
+            fastapi_app.dependency_overrides.pop(get_db, None)
+        finally:
+            if cls.test_engine is not None:
+                safe_teardown_test_db(cls.test_engine)
+
+        # Clean up any test artifacts or empty directories (F-1: do not delete logs directory)
         if os.path.exists("data"):
             try:
                 os.rmdir("data")
             except OSError:
                 pass
-        if os.path.exists("logs"):
+
+    def tearDown(self):
+        if hasattr(self, "TestSession") and self.TestSession is not None and self.test_engine is not None:
+            session = self.TestSession()
             try:
-                import shutil
-                shutil.rmtree("logs", ignore_errors=True)
-            except OSError:
-                pass
+                safe_clean_test_tables(session, self.test_engine)
+            finally:
+                session.close()
 
     def test_health_endpoint_returns_ok_json(self):
         # Confirms /health returns 200 {"status": "ok"} and is not shadowed by catch-all
@@ -110,6 +154,52 @@ class TestRoutes(unittest.TestCase):
     def test_download_pdf_path_traversal_sanitized(self):
         response = self.client.get("/download_pdf", params={"filename": "../../app/main.py"})
         self.assertEqual(response.status_code, 404)
+
+    def test_history_endpoint_requires_authentication(self):
+        # Security test: Unauthenticated visitor must be rejected with 401
+        response = self.client.get("/history")
+        self.assertEqual(response.status_code, 401)
+        self.assertIn("WWW-Authenticate", response.headers)
+
+    def test_history_endpoint_returns_scoped_user_searches(self):
+        test_user_id = uuid.uuid4()
+        session = self.TestSession()
+        try:
+            from app.models.db_models import User
+            from app.services.persistence_service import PersistenceService
+
+            user = User(
+                id=test_user_id,
+                email="history_user@example.com",
+                hashed_password=hash_password("Password123!"),
+                is_active=True,
+            )
+            session.add(user)
+            session.commit()
+
+            PersistenceService.record_search(
+                db=session,
+                query="scoped user query",
+                max_results=1,
+                enriched_papers=[
+                    {
+                        "title": "Scoped Paper",
+                        "url": "https://arxiv.org/abs/2601.12345",
+                        "authors": ["Author"],
+                        "summary": {"tldr": "TLDR", "citation": "Author 2026"},
+                    }
+                ],
+                user_id=test_user_id,
+            )
+        finally:
+            session.close()
+
+        token = create_access_token(subject=str(test_user_id))
+        response = self.client.get("/history", headers={"Authorization": f"Bearer {token}"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["query"], "scoped user query")
 
 
 if __name__ == "__main__":

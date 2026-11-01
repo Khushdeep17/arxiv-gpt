@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from app.api.routes import router
+from app.api.auth import router as auth_router
 from app.core.logging import setup_logging
 
 setup_logging()
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 # ✅ API FIRST
+app.include_router(auth_router)
 app.include_router(router)
 
 # ✅ Serve React static files
