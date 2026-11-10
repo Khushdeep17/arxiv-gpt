@@ -4,10 +4,19 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        "arxiv-blue": "#2563eb",
-        "arxiv-dark": "#1e293b",
-        "arxiv-gray": "#334155",
-        "arxiv-light": "#f1f5f9", // add this for light text
+        dark: {
+          canvas: "var(--bg-canvas)",
+          sidebar: "var(--bg-sidebar)",
+          card: "var(--bg-card)",
+          "card-hover": "var(--bg-card-hover)",
+          inset: "var(--bg-inset)",
+          subtle: "var(--bg-subtle)",
+          border: "var(--border-default)",
+          "border-subtle": "var(--border-subtle)",
+          "text-primary": "var(--text-primary)",
+          "text-secondary": "var(--text-secondary)",
+          "text-muted": "var(--text-muted)",
+        },
       },
     },
   },

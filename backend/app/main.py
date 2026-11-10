@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse
 from app.api.routes import router
 from app.api.auth import router as auth_router
 from app.core.logging import setup_logging
+from app.core.config import settings
 
 setup_logging()
 
@@ -15,13 +16,13 @@ app = FastAPI(
     version="2.0"
 )
 
-# CORS (safe to keep *)
+# Explicit CORS allowlist based on settings.CORS_ORIGINS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # ✅ API FIRST

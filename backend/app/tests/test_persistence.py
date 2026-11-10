@@ -225,7 +225,11 @@ class TestPersistence(unittest.TestCase):
 
     @patch("app.services.arxiv_service.ArxivService.fetch_papers")
     @patch("app.services.summarizer_service.SummarizerService.summarize")
-    def test_research_agent_summary_cache_reuse(self, mock_summarize, mock_fetch):
+    def test_research_agent_cache_hit_returns_cached_and_does_not_call_summarizer(self, mock_summarize, mock_fetch):
+        """
+        Regression Test 1: Cache hit returns the cached summary from the database
+        and SummarizerService.summarize is NOT called.
+        """
         # Pre-populate paper and summary in DB
         paper_url = "https://arxiv.org/abs/1706.03762"
         paper = Paper(title="Attention Is All You Need", url=paper_url, arxiv_id="1706.03762", authors=["Vaswani"])
@@ -265,6 +269,131 @@ class TestPersistence(unittest.TestCase):
         self.assertEqual(mock_summarize.call_count, 0)
         self.assertEqual(len(result["papers"]), 1)
         self.assertEqual(result["papers"][0]["summary"]["tldr"], "Cached TLDR from DB")
+
+    @patch("app.services.arxiv_service.ArxivService.fetch_papers")
+    @patch("app.services.summarizer_service.SummarizerService.summarize")
+    def test_research_agent_cache_miss_calls_summarizer_exactly_once(self, mock_summarize, mock_fetch):
+        """
+        Regression Test 2: Cache miss calls SummarizerService.summarize exactly once.
+        """
+        generated_summary = {
+            "tldr": "Fresh LLM summary for uncached paper",
+            "key_contributions": ["Novel finding"],
+            "methods": ["New method"],
+            "results": ["Promising result"],
+            "why_it_matters": "Extends previous work",
+            "citation": "Author et al., 2026",
+        }
+        mock_summarize.return_value = generated_summary
+
+        mock_fetch.return_value = [
+            {
+                "title": "Brand New Uncached Paper",
+                "url": "https://arxiv.org/abs/2601.99999",
+                "authors": ["Author"],
+                "published": "2026-01-01",
+                "category": "cs.AI",
+                "summary": "Abstract of the brand new paper",
+            }
+        ]
+
+        result, _ = ResearchAgent.run("uncached query", max_results=1, db=self.db)
+
+        # SummarizerService.summarize must be called exactly once
+        self.assertEqual(mock_summarize.call_count, 1)
+        self.assertEqual(len(result["papers"]), 1)
+        self.assertEqual(result["papers"][0]["summary"]["tldr"], "Fresh LLM summary for uncached paper")
+
+    @patch("app.services.persistence_service.PersistenceService.find_paper")
+    @patch("app.services.arxiv_service.ArxivService.fetch_papers")
+    @patch("app.services.summarizer_service.SummarizerService.summarize")
+    def test_research_agent_database_lookup_failure_calls_summarizer_exactly_once(
+        self, mock_summarize, mock_fetch, mock_find_paper
+    ):
+        """
+        Regression Test 3: If database lookup fails with an exception, fallback
+        preserves operation and calls SummarizerService.summarize exactly once.
+        """
+        mock_find_paper.side_effect = RuntimeError("Simulated database connection failure")
+
+        fallback_summary = {
+            "tldr": "Fallback summary after DB lookup error",
+            "key_contributions": ["Fallback contribution"],
+            "methods": ["Fallback method"],
+            "results": ["Fallback result"],
+            "why_it_matters": "System remained resilient",
+            "citation": "Resilient et al., 2026",
+        }
+        mock_summarize.return_value = fallback_summary
+
+        mock_fetch.return_value = [
+            {
+                "title": "Paper Handled During DB Glitch",
+                "url": "https://arxiv.org/abs/2601.88888",
+                "authors": ["Resilient"],
+                "published": "2026-01-02",
+                "category": "cs.SE",
+                "summary": "Abstract during failure",
+            }
+        ]
+
+        result, _ = ResearchAgent.run("failure recovery query", max_results=1, db=self.db)
+
+        # SummarizerService.summarize must be called exactly once
+        self.assertEqual(mock_summarize.call_count, 1)
+        self.assertEqual(len(result["papers"]), 1)
+        self.assertEqual(result["papers"][0]["summary"]["tldr"], "Fallback summary after DB lookup error")
+
+    @patch("app.services.pdf_service.PDFService.generate")
+    @patch("app.services.arxiv_service.ArxivService.fetch_papers")
+    @patch("app.services.summarizer_service.SummarizerService.summarize")
+    def test_research_agent_output_shape_remains_unchanged(
+        self, mock_summarize, mock_fetch, mock_generate_pdf
+    ):
+        """
+        Regression Test 4: Existing research output shape remains unchanged.
+        """
+        sample_summary = {
+            "tldr": "Output shape test summary",
+            "key_contributions": ["Point 1", "Point 2"],
+            "methods": ["Method A"],
+            "results": ["Result B"],
+            "why_it_matters": "Shape consistency",
+            "citation": "Author et al., 2026",
+        }
+        mock_summarize.return_value = sample_summary
+        mock_generate_pdf.return_value = "report_shape_test.pdf"
+
+        mock_fetch.return_value = [
+            {
+                "title": "Shape Test Paper",
+                "url": "https://arxiv.org/abs/2601.77777",
+                "authors": ["Author One", "Author Two"],
+                "published": "2026-01-03",
+                "category": "cs.LG",
+                "summary": "Abstract for shape test",
+            }
+        ]
+
+        # Case A: generate_pdf=False
+        result_no_pdf, pdf_no = ResearchAgent.run("shape query", max_results=1, generate_pdf=False, db=self.db)
+        self.assertIsNone(pdf_no)
+        self.assertIn("papers", result_no_pdf)
+        self.assertIn("query", result_no_pdf)
+        self.assertEqual(result_no_pdf["query"], "shape query")
+        self.assertEqual(len(result_no_pdf["papers"]), 1)
+
+        paper_obj = result_no_pdf["papers"][0]
+        expected_paper_keys = {"title", "authors", "published", "category", "url", "summary"}
+        self.assertEqual(set(paper_obj.keys()), expected_paper_keys)
+
+        expected_summary_keys = {"tldr", "key_contributions", "methods", "results", "why_it_matters", "citation"}
+        self.assertEqual(set(paper_obj["summary"].keys()), expected_summary_keys)
+
+        # Case B: generate_pdf=True
+        result_with_pdf, pdf_yes = ResearchAgent.run("shape query", max_results=1, generate_pdf=True, db=self.db)
+        self.assertEqual(pdf_yes, "report_shape_test.pdf")
+        self.assertEqual(set(result_with_pdf.keys()), {"papers", "query"})
 
 
 if __name__ == "__main__":

@@ -5,7 +5,12 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 from pydantic import ValidationError
 
-from app.core.config import Settings
+from app.core.config import (
+    Settings,
+    normalize_database_url,
+    parse_cors_origins,
+    DEFAULT_LOCAL_CORS_ORIGINS,
+)
 from app.core.security import create_access_token, decode_access_token
 from app.models.schemas import (
     UserCreate,
@@ -145,6 +150,86 @@ class TestSchemasAndConfig(unittest.TestCase):
         with patch.object(Settings, "JWT_SECRET_KEY", None):
             with self.assertRaises(RuntimeError):
                 create_access_token(subject="user_fail_test")
+
+    # -------------------------------------------------------------
+    # Database URL & CORS Configuration Tests
+    # -------------------------------------------------------------
+
+    def test_database_url_local_fallback(self):
+        # When no URL provided in local dev, fallback to SQLite
+        self.assertEqual(normalize_database_url(None, is_render=False), "sqlite:///./data/arxiv_gpt.db")
+        self.assertEqual(normalize_database_url("", is_render=False), "sqlite:///./data/arxiv_gpt.db")
+        self.assertEqual(normalize_database_url("   ", is_render=False), "sqlite:///./data/arxiv_gpt.db")
+
+    def test_database_url_normalization_postgres(self):
+        # postgres:// and postgresql:// normalized to postgresql+psycopg://
+        self.assertEqual(
+            normalize_database_url("postgres://u:p@localhost:5432/db", is_render=False),
+            "postgresql+psycopg://u:p@localhost:5432/db"
+        )
+        self.assertEqual(
+            normalize_database_url("postgresql://u:p@localhost:5432/db", is_render=False),
+            "postgresql+psycopg://u:p@localhost:5432/db"
+        )
+        self.assertEqual(
+            normalize_database_url("postgresql+psycopg://u:p@localhost:5432/db", is_render=False),
+            "postgresql+psycopg://u:p@localhost:5432/db"
+        )
+
+    def test_database_url_render_fail_fast_when_missing(self):
+        # On Render, missing or blank DATABASE_URL must raise RuntimeError
+        with self.assertRaises(RuntimeError) as ctx:
+            normalize_database_url(None, is_render=True)
+        self.assertIn("DATABASE_URL environment variable is required on Render", str(ctx.exception))
+
+        with self.assertRaises(RuntimeError) as ctx:
+            normalize_database_url("   ", is_render=True)
+        self.assertIn("DATABASE_URL environment variable is required on Render", str(ctx.exception))
+
+    def test_database_url_render_rejects_non_postgres(self):
+        # On Render, SQLite or invalid database schemas must be rejected
+        with self.assertRaises(RuntimeError) as ctx:
+            normalize_database_url("sqlite:///./data/arxiv_gpt.db", is_render=True)
+        self.assertIn("Production DATABASE_URL on Render must be a PostgreSQL connection string", str(ctx.exception))
+        # Ensure credentials/url are not leaked
+        self.assertNotIn("sqlite", str(ctx.exception))
+
+    def test_database_url_render_normalizes_postgres(self):
+        # On Render, valid PostgreSQL URL is normalized
+        result = normalize_database_url("postgres://app_user:secret_pw@dpg-abc:5432/arxiv_gpt", is_render=True)
+        self.assertEqual(result, "postgresql+psycopg://app_user:secret_pw@dpg-abc:5432/arxiv_gpt")
+
+    def test_cors_origins_local_default(self):
+        # Local development defaults to standard local ports
+        origins = parse_cors_origins(None, is_render=False)
+        self.assertEqual(origins, DEFAULT_LOCAL_CORS_ORIGINS)
+        self.assertIn("http://localhost:3000", origins)
+
+    def test_cors_origins_parsing(self):
+        origins = parse_cors_origins("http://localhost:3000, http://127.0.0.1:8000/", is_render=False)
+        self.assertEqual(origins, ["http://localhost:3000", "http://127.0.0.1:8000"])
+
+    def test_cors_origins_render_fail_fast_when_missing(self):
+        with self.assertRaises(RuntimeError) as ctx:
+            parse_cors_origins(None, is_render=True)
+        self.assertIn("CORS_ORIGINS environment variable is required on Render", str(ctx.exception))
+
+    def test_cors_origins_render_rejects_wildcard(self):
+        with self.assertRaises(RuntimeError) as ctx:
+            parse_cors_origins("*", is_render=True)
+        self.assertIn("Wildcard CORS origin ('*') is not permitted on Render", str(ctx.exception))
+
+        with self.assertRaises(RuntimeError):
+            parse_cors_origins("https://arxiv-gpt.onrender.com, *", is_render=True)
+
+    def test_cors_origins_render_valid_explicit(self):
+        origins = parse_cors_origins("https://arxiv-gpt.onrender.com, https://arxiv-gpt-custom.com/", is_render=True)
+        self.assertEqual(origins, ["https://arxiv-gpt.onrender.com", "https://arxiv-gpt-custom.com"])
+
+    def test_cors_origins_render_falls_back_to_render_external_url(self):
+        with patch.dict(os.environ, {"RENDER_EXTERNAL_URL": "https://arxiv-gpt-auto.onrender.com"}):
+            origins = parse_cors_origins(None, is_render=True)
+            self.assertEqual(origins, ["https://arxiv-gpt-auto.onrender.com"])
 
 
 if __name__ == "__main__":

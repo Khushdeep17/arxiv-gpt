@@ -15,7 +15,13 @@ logger = logging.getLogger(__name__)
 class ResearchAgent:
 
     @staticmethod
-    def run(query: str, max_results: int = 3, generate_pdf: bool = False, db: Optional[Session] = None, user_id: Optional[uuid.UUID] = None):
+    def run(
+        query: str,
+        max_results: int = 3,
+        generate_pdf: bool = False,
+        db: Optional[Session] = None,
+        user_id: Optional[uuid.UUID] = None,
+    ):
 
         papers = ArxivService.fetch_papers(query, max_results)
 
@@ -25,12 +31,17 @@ class ResearchAgent:
         enriched = []
 
         for paper in papers:
+            # 1. Initialize summary = None
             summary = None
 
-            # Check if a compatible summary already exists in the database
+            # 2. Attempt to retrieve a compatible cached summary when a database session is available
             if db is not None:
                 try:
-                    db_paper = PersistenceService.find_paper(db, url=paper.get("url", ""))
+                    db_paper = PersistenceService.find_paper(
+                        db,
+                        url=paper.get("url", ""),
+                        arxiv_id=paper.get("arxiv_id"),
+                    )
                     if db_paper is not None:
                         cached_sum = PersistenceService.get_cached_summary(
                             db=db,
@@ -38,8 +49,11 @@ class ResearchAgent:
                             model_name=settings.SUMMARY_MODEL_NAME,
                             prompt_version=settings.SUMMARY_PROMPT_VERSION,
                         )
+                        # 3. If a cached summary is found, use it directly
                         if cached_sum is not None:
-                            logger.info(f"Reusing cached summary for '{paper['title'][:40]}'")
+                            logger.info(
+                                f"Reusing cached summary for '{paper.get('title', 'Untitled')[:40]}'"
+                            )
                             summary = {
                                 "tldr": cached_sum.tldr,
                                 "key_contributions": cached_sum.key_contributions,
@@ -49,9 +63,10 @@ class ResearchAgent:
                                 "citation": cached_sum.citation,
                             }
                 except Exception as e:
+                    # 5. Preserve fallback behavior when database lookup fails
                     logger.warning(f"Failed to check cached summary from database: {e}")
 
-            # If no cached summary was found or db was not provided, invoke LLM
+            # 4. Call SummarizerService.summarize(paper) exactly once only when no cached summary is available
             if summary is None:
                 summary = SummarizerService.summarize(paper)
 
