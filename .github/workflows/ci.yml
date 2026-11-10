@@ -35,6 +35,7 @@ jobs:
       - name: Run backend unittest suite
         env:
           GROQ_API_KEY: mock_key_for_testing
+          JWT_SECRET_KEY: mock_ci_jwt_secret_key_for_testing_32b!
         run: python -m unittest discover -s app/tests -v
 
   frontend:
@@ -56,6 +57,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Run frontend tests
+        env:
+          CI: "true"
+        run: npm test -- --watchAll=false
 
       - name: Run frontend production build
         env:

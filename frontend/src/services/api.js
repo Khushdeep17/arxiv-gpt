@@ -63,3 +63,6 @@ export const fetchHistory = () =>
 
 export const downloadPdfUrl = (filename) =>
   `/download_pdf?filename=${encodeURIComponent(filename)}`;
+
+// Re-export diagnostic error formatter
+export { formatApiError } from "./errorHandler";
