@@ -47,7 +47,12 @@ def health():
     return {"status": "ok"}
 
 
-# React Router refresh fix
+import os
+
+# React Router refresh fix and root static asset resolution
 @app.get("/{full_path:path}")
 def catch_all(full_path: str):
+    file_path = os.path.join("app/static", full_path)
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
     return FileResponse("app/static/index.html")

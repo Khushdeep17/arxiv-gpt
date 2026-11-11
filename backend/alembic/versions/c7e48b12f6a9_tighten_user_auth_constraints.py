@@ -20,18 +20,17 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema: enforce non-null email and hashed_password, and add functional unique index on LOWER(email)."""
-    op.alter_column(
-        'users',
-        'email',
-        existing_type=sa.String(length=255),
-        nullable=False,
-    )
-    op.alter_column(
-        'users',
-        'hashed_password',
-        existing_type=sa.String(length=255),
-        nullable=False,
-    )
+    with op.batch_alter_table('users') as batch_op:
+        batch_op.alter_column(
+            'email',
+            existing_type=sa.String(length=255),
+            nullable=False,
+        )
+        batch_op.alter_column(
+            'hashed_password',
+            existing_type=sa.String(length=255),
+            nullable=False,
+        )
     op.create_index(
         'uq_users_lower_email',
         'users',
@@ -43,16 +42,15 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Downgrade schema: drop functional index and restore columns to nullable."""
     op.drop_index('uq_users_lower_email', table_name='users')
-    op.alter_column(
-        'users',
-        'hashed_password',
-        existing_type=sa.String(length=255),
-        nullable=True,
-    )
-    op.alter_column(
-        'users',
-        'email',
-        existing_type=sa.String(length=255),
-        nullable=True,
-    )
+    with op.batch_alter_table('users') as batch_op:
+        batch_op.alter_column(
+            'hashed_password',
+            existing_type=sa.String(length=255),
+            nullable=True,
+        )
+        batch_op.alter_column(
+            'email',
+            existing_type=sa.String(length=255),
+            nullable=True,
+        )
 

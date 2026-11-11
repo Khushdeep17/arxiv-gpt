@@ -1,13 +1,15 @@
 # Python
 venv/
+.venv/
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
 data/
+backend/data/
 *.db
 *.sqlite
 *.sqlite3
+
 # Node
 node_modules/
 npm-debug.log*
@@ -23,9 +25,12 @@ dist/
 # Logs
 *.log
 logs/
+backend/logs/
 
 # Environment & secrets
 .env
+.env.*
+!.env.example
 
 # OS / IDE files
 .DS_Store
@@ -40,8 +45,8 @@ Thumbs.db
 # Testing
 .coverage
 .pytest_cache/
+htmlcov/
 
 # Mac
 .AppleDouble
 .LSOverride
-

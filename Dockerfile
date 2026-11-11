@@ -41,7 +41,8 @@ COPY backend/app ./app
 COPY backend/alembic ./alembic
 COPY backend/alembic.ini .
 
-# Copy compiled frontend from stage 1 into the exact directory served by FastAPI
+# Clean any stale pre-packaged static assets and copy compiled frontend from stage 1
+RUN rm -rf ./app/static
 COPY --from=frontend-builder /app/frontend/build ./app/static
 
 # Ensure runtime directories exist for ephemeral logs and PDF exports
@@ -49,5 +50,5 @@ RUN mkdir -p data logs
 
 EXPOSE 8000
 
-# Standardized application startup
-CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Standardized application startup: auto-migrate database schema on startup then launch uvicorn
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
