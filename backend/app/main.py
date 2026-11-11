@@ -36,10 +36,17 @@ app.mount(
     name="static"
 )
 
+# Prevent caching of index.html so browsers always receive the latest SPA updates
+HTML_CACHE_HEADERS = {
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
+}
+
 # ✅ Root
 @app.get("/")
 def serve_react():
-    return FileResponse("app/static/index.html")
+    return FileResponse("app/static/index.html", headers=HTML_CACHE_HEADERS)
 
 
 @app.get("/health")
@@ -55,4 +62,4 @@ def catch_all(full_path: str):
     file_path = os.path.join("app/static", full_path)
     if os.path.isfile(file_path):
         return FileResponse(file_path)
-    return FileResponse("app/static/index.html")
+    return FileResponse("app/static/index.html", headers=HTML_CACHE_HEADERS)

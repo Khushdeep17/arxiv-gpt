@@ -246,7 +246,7 @@ cp .env.example .env
 Edit `.env` and fill in your keys:
 ```env
 GROQ_API_KEY=gsk_your_groq_api_key_here
-JWT_SECRET_KEY=aB4XcH3lwYTRKvjpRoUi4NdEtbDxomX9CWZodQDtJVGmFeHfJ4MQ_Tsu13xrMwgm
+JWT_SECRET_KEY=your_generated_random_secret_key_here_min_32_chars
 # In local development, DATABASE_URL can be left blank to automatically default to SQLite!
 ```
 
