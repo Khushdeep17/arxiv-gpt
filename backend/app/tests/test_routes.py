@@ -80,6 +80,17 @@ class TestRoutes(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
         self.assertEqual(response.headers.get("content-type"), "application/json")
+        self.assertIn("x-request-id", response.headers)
+        self.assertIn("x-process-time", response.headers)
+
+    def test_head_probes_succeed_for_platform_healthchecks(self):
+        self.assertEqual(self.client.head("/health").status_code, 200)
+        self.assertEqual(self.client.head("/").status_code, 200)
+
+    def test_catch_all_blocks_static_path_traversal(self):
+        response = self.client.get("/..%2F..%2Fapp%2Fmain.py")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("add_request_observability", response.text)
 
     def test_search_query_too_short_returns_400(self):
         response = self.client.post("/search", json={"query": "ab"})

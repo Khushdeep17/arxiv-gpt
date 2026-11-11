@@ -1,6 +1,13 @@
-from app.evaluation.benchmark import run_latency_test
-from app.evaluation.completeness import run_completeness_test
-from app.evaluation.compression import run_compression_test
+import os
+import sys
+
+# Ensure backend/ is on sys.path so app.* imports resolve when run from repo root
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
+
+from evaluation.benchmark import run_latency_test
+from evaluation.completeness import run_completeness_test
+from evaluation.compression import run_compression_test
+
 
 def main():
     print("Running arXiv-GPT Evaluation...\n")
@@ -15,6 +22,7 @@ def main():
     print(f"Summary Completeness: {completeness:.1f}%")
     print(f"Schema Validity: {schema_valid}")
     print(f"Compression Ratio: {compression:.2f}x")
+
 
 if __name__ == "__main__":
     main()

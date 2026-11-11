@@ -18,6 +18,7 @@ yarn-error.log*
 
 # Build
 frontend/build/
+backend/app/static/
 frontend/.parcel-cache
 dist/
 *.local

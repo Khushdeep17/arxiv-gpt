@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD Pipeline
 
 "on":
   push:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   backend:
-    name: Backend Tests
+    name: Backend Tests & Migrations
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -32,6 +32,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Verify Alembic migrations
+        run: |
+          alembic upgrade head
+          rm -rf data
+
       - name: Run backend unittest suite
         env:
           GROQ_API_KEY: mock_key_for_testing
@@ -39,7 +44,7 @@ jobs:
         run: python -m unittest discover -s app/tests -v
 
   frontend:
-    name: Frontend Build
+    name: Frontend Tests & Build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -67,3 +72,41 @@ jobs:
         env:
           CI: "true"
         run: npm run build
+
+  docker:
+    name: Docker Multi-Stage Build Check
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Verify production Docker image builds
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: arxiv-gpt:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to Render (CD)
+    needs: [docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Deploy Hook
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK secret is not configured. Skipping automatic Render trigger."
+            echo "Add your Render Deploy Hook URL as a GitHub Actions secret named RENDER_DEPLOY_HOOK to enable gated CD."
+            exit 0
+          fi
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK"
+          echo "Triggered Render production deployment successfully."

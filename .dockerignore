@@ -15,7 +15,10 @@ venv/
 # Node dependencies and build caches
 **/node_modules/
 frontend/build/
+backend/app/static/
 frontend/.parcel-cache/
+evaluation/
+scripts/
 
 # Local secrets & environment files
 .env
